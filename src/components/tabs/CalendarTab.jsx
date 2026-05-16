@@ -1,8 +1,8 @@
 import { useState } from 'react'
 import { PALETTE } from '../../constants.js'
 
-const TODAY = 16
-const FIRST_DOW = 3 // May 2026 starts Thursday (0=Mon)
+const TODAY = 15
+const FIRST_DOW = 4 // May 2026 starts Friday (0=Mon)
 const DAYS = Array.from({ length: 31 }, (_, i) => i + 1)
 
 export default function CalendarTab({ events, setEvents }) {

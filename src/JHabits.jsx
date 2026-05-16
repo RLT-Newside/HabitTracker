@@ -72,7 +72,7 @@ export default function JHabits() {
       <div style={{ background: PALETTE.surface, borderBottom: `1px solid ${PALETTE.border}`, padding: '14px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 10 }}>
         <div>
           <div style={{ fontWeight: 800, fontSize: 20, letterSpacing: -0.5, background: `linear-gradient(90deg, ${PALETTE.accent}, ${PALETTE.blue})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>JHabits</div>
-          <div style={{ fontSize: 11, color: PALETTE.muted, marginTop: 1 }}>Thursday, May 15</div>
+          <div style={{ fontSize: 11, color: PALETTE.muted, marginTop: 1 }}>Friday, May 15</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, background: PALETTE.card, border: `1px solid ${PALETTE.border}`, borderRadius: 20, padding: '5px 12px' }}>
