@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { Plus, Flame, Check, Circle, TrendingUp, Target, Sparkles } from 'lucide-react'
 import { Habit, Completion, FREQUENCY_LABELS } from '../../types'
 import { isTodayCompleted, calculateGoalProgress, getCurrentStreak, getToday } from '../../hooks/useStats'
@@ -13,12 +13,22 @@ interface DashboardProps {
 }
 
 export function Dashboard({ habits, completions, onToggle, onAddHabit, onHabitDetail }: DashboardProps) {
-  const activeHabits = habits.filter(h => !h.archived)
-  const completedCount = activeHabits.filter(h => isTodayCompleted(completions, h.id)).length
+  const activeHabits = useMemo(() => habits.filter(h => !h.archived), [habits])
+  const [justCompleted, setJustCompleted] = useState<string | null>(null)
+
+  const habitStats = useMemo(() => {
+    return activeHabits.map(h => ({
+      habit: h,
+      done: isTodayCompleted(completions, h.id),
+      streak: getCurrentStreak(completions, h.id),
+      progress: calculateGoalProgress(h, completions),
+    }))
+  }, [activeHabits, completions])
+
+  const completedCount = habitStats.filter(s => s.done).length
   const totalCount = activeHabits.length
   const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-  const bestStreak = Math.max(...activeHabits.map(h => getCurrentStreak(completions, h.id)), 0)
-  const [justCompleted, setJustCompleted] = useState<string | null>(null)
+  const bestStreak = useMemo(() => Math.max(...habitStats.map(s => s.streak), 0), [habitStats])
 
   const handleToggle = useCallback((habitId: string) => {
     if (!isTodayCompleted(completions, habitId)) {
@@ -91,10 +101,7 @@ export function Dashboard({ habits, completions, onToggle, onAddHabit, onHabitDe
       <div className="space-y-2">
         <h2 className="font-heading text-[15px] tracking-[0.15em] text-white/30">TODAY&apos;S HABITS</h2>
 
-        {activeHabits.map((habit, idx) => {
-          const done = isTodayCompleted(completions, habit.id)
-          const streak = getCurrentStreak(completions, habit.id)
-          const progress = calculateGoalProgress(habit, completions)
+        {habitStats.map(({ habit, done, streak, progress }, idx) => {
           const primary = progress[0]
           const isJustDone = justCompleted === habit.id
 

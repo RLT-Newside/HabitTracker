@@ -1,7 +1,8 @@
-import { Download, Upload, ExternalLink } from 'lucide-react'
+import { Download, Upload } from 'lucide-react'
 import { Modal } from '../shared/Modal'
 import { Habit, Completion, Task } from '../../types'
 import { Theme, THEME_META } from '../../hooks/useTheme'
+import { exportData, importData } from '../../services/shareExport'
 
 declare const __APP_VERSION__: string
 
@@ -17,36 +18,18 @@ interface SettingsModalProps {
 }
 
 export function SettingsModal({ open, onClose, theme, setTheme, habits, completions, tasks, onImport }: SettingsModalProps) {
-  function handleExport() {
-    const data = JSON.stringify({ habits, completions, tasks, exportedAt: new Date().toISOString() }, null, 2)
-    const blob = new Blob([data], { type: 'application/json' })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `jhabits-backup-${new Date().toISOString().slice(0, 10)}.json`
-    a.click()
-    URL.revokeObjectURL(url)
+  async function handleExport() {
+    await exportData(habits, completions, tasks)
   }
 
-  function handleImport() {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = '.json'
-    input.onchange = async () => {
-      const file = input.files?.[0]
-      if (!file) return
-      try {
-        const text = await file.text()
-        const data = JSON.parse(text)
-        if (data.habits && data.completions) {
-          onImport(data)
-          alert('Data imported successfully!')
-        }
-      } catch {
-        alert('Invalid backup file.')
-      }
+  async function handleImport() {
+    const data = await importData()
+    if (data) {
+      onImport(data)
+      alert('Data imported successfully!')
+    } else {
+      alert('Invalid or no file selected.')
     }
-    input.click()
   }
 
   return (

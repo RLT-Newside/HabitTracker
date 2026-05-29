@@ -1,9 +1,9 @@
-import { useState, useCallback, useMemo } from 'react'
-import { v4 as uuid } from 'uuid'
-import { Tab, Habit, Completion, Task } from './types'
-import { useStorage } from './hooks/useStorage'
+import { useEffect, useCallback, useMemo } from 'react'
+import { useHabitStore } from './stores/habitStore'
+import { useNavStore } from './stores/navStore'
 import { useTheme } from './hooks/useTheme'
 import { getToday, getCurrentStreak } from './hooks/useStats'
+import { tapMedium, tapSuccess } from './services/haptics'
 import { Header } from './components/layout/Header'
 import { BottomNav } from './components/layout/BottomNav'
 import { Dashboard } from './components/dashboard/Dashboard'
@@ -14,62 +14,55 @@ import { SettingsModal } from './components/settings/SettingsModal'
 
 export default function App() {
   const { theme, setTheme } = useTheme()
-  const [tab, setTab] = useState<Tab>('dashboard')
-  const [habits, setHabits] = useStorage<Habit[]>('habits_list', [])
-  const [completions, setCompletions] = useStorage<Completion[]>('habits_completions', [])
-  const [tasks, setTasks] = useStorage<Task[]>('habits_tasks', [])
+  const { tab, setTab, selectedDate, setSelectedDate, settingsOpen, openSettings, closeSettings, habitFormOpen, editHabitId, openHabitForm, closeHabitForm, goBack } = useNavStore()
+  const { habits, completions, tasks, toggleCompletion, addHabit, updateHabit, deleteHabit, importData } = useHabitStore()
 
-  const [settingsOpen, setSettingsOpen] = useState(false)
-  const [habitFormOpen, setHabitFormOpen] = useState(false)
-  const [editHabit, setEditHabit] = useState<Habit | null>(null)
-  const [selectedDate, setSelectedDate] = useState(getToday())
+  const editHabit = useMemo(() => editHabitId ? habits.find(h => h.id === editHabitId) || null : null, [editHabitId, habits])
 
   const bestStreak = useMemo(() => {
     const active = habits.filter(h => !h.archived)
-    return Math.max(...active.map(h => getCurrentStreak(completions, h.id)), 0)
+    if (active.length === 0) return 0
+    return Math.max(...active.map(h => getCurrentStreak(completions, h.id)))
   }, [habits, completions])
+
+  // Android hardware back button
+  useEffect(() => {
+    function handleBackButton(e: PopStateEvent) {
+      const handled = goBack()
+      if (handled) {
+        e.preventDefault()
+        window.history.pushState(null, '', window.location.href)
+      }
+    }
+    window.history.pushState(null, '', window.location.href)
+    window.addEventListener('popstate', handleBackButton)
+    return () => window.removeEventListener('popstate', handleBackButton)
+  }, [goBack])
 
   const handleToggle = useCallback((habitId: string) => {
     const date = getToday()
-    setCompletions(prev => {
-      const existing = prev.find(c => c.habitId === habitId && c.date === date)
-      if (existing) return prev.filter(c => c.id !== existing.id)
-      return [...prev, { id: uuid(), habitId, date, value: 1, notes: '', createdAt: new Date().toISOString() }]
-    })
-  }, [setCompletions])
+    const completed = toggleCompletion(habitId, date)
+    if (completed) tapSuccess()
+    else tapMedium()
+  }, [toggleCompletion])
 
-  const handleSaveHabit = useCallback((habit: Habit) => {
-    setHabits(prev => {
-      const idx = prev.findIndex(h => h.id === habit.id)
-      if (idx >= 0) {
-        const next = [...prev]
-        next[idx] = habit
-        return next
-      }
-      return [...prev, { ...habit, sortOrder: prev.length }]
-    })
-    setEditHabit(null)
-  }, [setHabits])
+  const handleSaveHabit = useCallback((habit: import('./types').Habit) => {
+    if (habits.find(h => h.id === habit.id)) {
+      updateHabit(habit)
+    } else {
+      addHabit(habit)
+    }
+    closeHabitForm()
+  }, [habits, addHabit, updateHabit, closeHabitForm])
 
   const handleDeleteHabit = useCallback((id: string) => {
-    setHabits(prev => prev.filter(h => h.id !== id))
-    setCompletions(prev => prev.filter(c => c.habitId !== id))
-  }, [setHabits, setCompletions])
-
-  const handleHabitDetail = useCallback((habit: Habit) => {
-    setEditHabit(habit)
-    setHabitFormOpen(true)
-  }, [])
-
-  const handleImport = useCallback((data: { habits: Habit[]; completions: Completion[]; tasks: Task[] }) => {
-    setHabits(data.habits)
-    setCompletions(data.completions)
-    setTasks(data.tasks || [])
-  }, [setHabits, setCompletions, setTasks])
+    deleteHabit(id)
+    closeHabitForm()
+  }, [deleteHabit, closeHabitForm])
 
   return (
     <>
-      <Header onSettingsOpen={() => setSettingsOpen(true)} streak={bestStreak} />
+      <Header onSettingsOpen={openSettings} streak={bestStreak} />
 
       <main className="pb-16">
         {tab === 'dashboard' && (
@@ -77,8 +70,8 @@ export default function App() {
             habits={habits}
             completions={completions}
             onToggle={handleToggle}
-            onAddHabit={() => { setEditHabit(null); setHabitFormOpen(true) }}
-            onHabitDetail={handleHabitDetail}
+            onAddHabit={() => openHabitForm()}
+            onHabitDetail={(h) => openHabitForm(h.id)}
           />
         )}
         {tab === 'calendar' && (
@@ -98,7 +91,7 @@ export default function App() {
 
       <HabitForm
         open={habitFormOpen}
-        onClose={() => { setHabitFormOpen(false); setEditHabit(null) }}
+        onClose={closeHabitForm}
         onSave={handleSaveHabit}
         onDelete={handleDeleteHabit}
         editHabit={editHabit}
@@ -106,13 +99,13 @@ export default function App() {
 
       <SettingsModal
         open={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
+        onClose={closeSettings}
         theme={theme}
         setTheme={setTheme}
         habits={habits}
         completions={completions}
         tasks={tasks}
-        onImport={handleImport}
+        onImport={importData}
       />
     </>
   )
