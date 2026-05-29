@@ -1,5 +1,5 @@
-import { useCallback } from 'react'
-import { Plus, Flame, Check, Circle } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Plus, Flame, Check, Circle, Target, TrendingUp } from 'lucide-react'
 import { Habit, Completion } from '../../types'
 import { isTodayCompleted, calculateGoalProgress, getCurrentStreak, getToday } from '../../hooks/useStats'
 import { ProgressRing } from '../shared/ProgressRing'
@@ -16,88 +16,152 @@ interface DashboardProps {
 export function Dashboard({ habits, completions, onToggle, onAddHabit, onHabitDetail }: DashboardProps) {
   const activeHabits = habits.filter(h => !h.archived)
   const completedCount = activeHabits.filter(h => isTodayCompleted(completions, h.id)).length
-  const pct = activeHabits.length > 0 ? Math.round((completedCount / activeHabits.length) * 100) : 0
+  const totalCount = activeHabits.length
+  const pct = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+  const [justCompleted, setJustCompleted] = useState<string | null>(null)
 
-  return (
-    <div className="px-4 pb-24 space-y-4">
-      {activeHabits.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs text-white/40">{new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}</p>
-          <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-            <div className="h-full bg-[var(--color-brand)] rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
-          </div>
-          <p className="text-xs text-white/40">{completedCount}/{activeHabits.length} completed</p>
+  const handleToggle = useCallback((habitId: string) => {
+    if (!isTodayCompleted(completions, habitId)) {
+      setJustCompleted(habitId)
+      setTimeout(() => setJustCompleted(null), 600)
+    }
+    onToggle(habitId)
+  }, [completions, onToggle])
+
+  if (activeHabits.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center pt-40 px-8 gap-5">
+        <div className="w-20 h-20 rounded-3xl bg-brand/10 flex items-center justify-center">
+          <Target size={36} className="text-brand" />
         </div>
-      )}
-
-      {activeHabits.length === 0 ? (
-        <div className="flex flex-col items-center justify-center pt-32 gap-4 text-white/30">
-          <Plus size={48} />
-          <p className="text-lg">No habits yet</p>
-          <button onClick={onAddHabit} className="px-6 py-2.5 bg-[var(--color-brand)] text-white rounded-xl font-semibold">
-            Create First Habit
-          </button>
+        <div className="text-center space-y-1.5">
+          <p className="font-heading text-2xl">START YOUR JOURNEY</p>
+          <p className="text-sm text-white/30">Create your first habit to begin tracking</p>
         </div>
-      ) : (
-        <div className="space-y-2">
-          {activeHabits.map(habit => {
-            const done = isTodayCompleted(completions, habit.id)
-            const streak = getCurrentStreak(completions, habit.id)
-            const progress = calculateGoalProgress(habit, completions)
-            const primary = progress[0]
-
-            return (
-              <div
-                key={habit.id}
-                className={`flex items-center gap-3 p-3.5 rounded-xl transition-all ${done ? 'bg-white/3' : 'bg-white/5 hover:bg-white/8'}`}
-              >
-                <button
-                  onClick={() => onToggle(habit.id)}
-                  className="shrink-0 transition-transform active:scale-90"
-                >
-                  {done ? (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: habit.color }}>
-                      <Check size={18} className="text-white" />
-                    </div>
-                  ) : (
-                    <Circle size={32} className="text-white/20" />
-                  )}
-                </button>
-
-                <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onHabitDetail(habit)}>
-                  <p className={`font-medium truncate ${done ? 'line-through text-white/30' : ''}`}>{habit.name}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    {streak > 0 && (
-                      <span className="flex items-center gap-0.5 text-xs font-semibold text-amber-400">
-                        <Flame size={12} />{streak}d
-                      </span>
-                    )}
-                    {primary && (
-                      <span className="text-xs text-white/30">
-                        {primary.currentCount}/{primary.targetCount} {FREQUENCY_LABELS[primary.frequency].toLowerCase()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {primary && (
-                  <ProgressRing percentage={primary.percentage} size={40} strokeWidth={3} color={habit.color} showLabel={false} />
-                )}
-              </div>
-            )
-          })}
-        </div>
-      )}
-
-      {activeHabits.length > 0 && (
         <button
           onClick={onAddHabit}
-          className="fixed bottom-20 right-4 w-14 h-14 bg-[var(--color-brand)] rounded-full flex items-center justify-center shadow-lg shadow-[var(--color-brand)]/20 active:scale-95 transition z-30"
-          style={{ right: 'max(16px, calc(50% - 215px + 16px))' }}
+          className="mt-2 px-8 py-3 bg-brand text-white rounded-2xl font-semibold text-sm active:scale-95 transition-all shadow-lg shadow-brand/20"
         >
-          <Plus size={24} className="text-white" />
+          Create Habit
         </button>
-      )}
+      </div>
+    )
+  }
+
+  return (
+    <div className="px-4 pb-28 space-y-5">
+      {/* Stats row */}
+      <div className="space-y-3 pt-2">
+        <p className="text-[10px] text-white/25 uppercase tracking-widest font-medium">
+          {new Date().toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+        </p>
+
+        <div className="grid grid-cols-3 gap-2.5">
+          <div className="bg-[#1a1a1a] rounded-xl p-3 text-center">
+            <TrendingUp size={14} className="mx-auto text-white/20 mb-1" />
+            <p className="font-heading text-2xl text-brand">{pct}%</p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider">Today</p>
+          </div>
+          <div className="bg-[#1a1a1a] rounded-xl p-3 text-center">
+            <Check size={14} className="mx-auto text-white/20 mb-1" />
+            <p className="font-heading text-2xl">{completedCount}<span className="text-white/30">/{totalCount}</span></p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider">Done</p>
+          </div>
+          <div className="bg-[#1a1a1a] rounded-xl p-3 text-center">
+            <Flame size={14} className="mx-auto text-brand/50 mb-1" />
+            <p className="font-heading text-2xl text-brand">
+              {Math.max(...activeHabits.map(h => getCurrentStreak(completions, h.id)), 0)}
+            </p>
+            <p className="text-[9px] text-white/30 uppercase tracking-wider">Best Streak</p>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="relative h-1 bg-white/[0.04] rounded-full overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-brand to-brand/70 rounded-full transition-all duration-700 ease-out"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+      </div>
+
+      {/* Habits list */}
+      <div className="space-y-2">
+        <h2 className="font-heading text-lg tracking-wide text-white/60">HABITS</h2>
+        {activeHabits.map(habit => {
+          const done = isTodayCompleted(completions, habit.id)
+          const streak = getCurrentStreak(completions, habit.id)
+          const progress = calculateGoalProgress(habit, completions)
+          const primary = progress[0]
+          const isJustDone = justCompleted === habit.id
+
+          return (
+            <div
+              key={habit.id}
+              className={`group flex items-center gap-3 p-3.5 rounded-2xl border transition-all duration-300 ${
+                done
+                  ? 'bg-white/[0.02] border-white/[0.03]'
+                  : 'bg-[#1a1a1a] border-white/[0.04] hover:border-white/[0.08] hover:bg-[#1e1e1e]'
+              }`}
+            >
+              <button
+                onClick={() => handleToggle(habit.id)}
+                className="shrink-0 active:scale-75 transition-transform"
+              >
+                {done ? (
+                  <div
+                    className={`w-9 h-9 rounded-xl flex items-center justify-center shadow-lg ${isJustDone ? 'animate-check-pop' : ''}`}
+                    style={{ backgroundColor: habit.color, boxShadow: `0 4px 12px ${habit.color}30` }}
+                  >
+                    <Check size={18} className="text-white" strokeWidth={3} />
+                  </div>
+                ) : (
+                  <div className="w-9 h-9 rounded-xl border-2 border-white/10 flex items-center justify-center group-hover:border-white/20 transition-colors">
+                    <Circle size={14} className="text-white/10" />
+                  </div>
+                )}
+              </button>
+
+              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => onHabitDetail(habit)}>
+                <p className={`font-medium text-[15px] truncate transition-all ${done ? 'line-through text-white/20' : 'text-white/90'}`}>
+                  {habit.name}
+                </p>
+                <div className="flex items-center gap-2.5 mt-0.5">
+                  {streak > 0 && (
+                    <span className="flex items-center gap-0.5 text-[11px] font-bold text-amber-400/80">
+                      <Flame size={11} />{streak}
+                    </span>
+                  )}
+                  {primary && (
+                    <span className="text-[11px] text-white/25 font-medium">
+                      {primary.currentCount}/{primary.targetCount} {FREQUENCY_LABELS[primary.frequency].toLowerCase()}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {primary && (
+                <ProgressRing
+                  percentage={primary.percentage}
+                  size={42}
+                  strokeWidth={3.5}
+                  color={habit.color}
+                  showLabel={false}
+                />
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* FAB */}
+      <button
+        onClick={onAddHabit}
+        className="fixed bottom-24 w-12 h-12 bg-brand rounded-2xl flex items-center justify-center shadow-xl shadow-brand/25 active:scale-90 transition-all hover:shadow-brand/40"
+        style={{ right: 'max(16px, calc(50% - 199px))' }}
+      >
+        <Plus size={22} className="text-white" strokeWidth={2.5} />
+      </button>
     </div>
   )
 }

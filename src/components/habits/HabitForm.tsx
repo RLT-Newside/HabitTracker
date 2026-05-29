@@ -56,38 +56,40 @@ export function HabitForm({ open, onClose, onSave, editHabit }: HabitFormProps) 
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={editHabit ? 'Edit Habit' : 'New Habit'}>
-      <div className="space-y-5">
+    <Modal open={open} onClose={onClose} title={editHabit ? 'EDIT HABIT' : 'NEW HABIT'}>
+      <div className="space-y-6">
         <div>
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Name</label>
+          <label className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Name</label>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="e.g., Read 30 minutes"
-            className="w-full mt-1.5 px-3.5 py-2.5 bg-white/5 rounded-xl text-white placeholder:text-white/20 outline-none focus:ring-1 focus:ring-[var(--color-brand)]"
+            className="w-full mt-2 px-4 py-3 bg-white/[0.04] rounded-xl text-[15px] text-white placeholder:text-white/15 outline-none border border-white/[0.04] focus:border-brand/50 transition-colors"
             autoFocus
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Description (optional)</label>
+          <label className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Description</label>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Why this habit matters"
             rows={2}
-            className="w-full mt-1.5 px-3.5 py-2.5 bg-white/5 rounded-xl text-white placeholder:text-white/20 outline-none focus:ring-1 focus:ring-[var(--color-brand)] resize-none"
+            className="w-full mt-2 px-4 py-3 bg-white/[0.04] rounded-xl text-[15px] text-white placeholder:text-white/15 outline-none border border-white/[0.04] focus:border-brand/50 resize-none transition-colors"
           />
         </div>
 
         <div>
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Color</label>
-          <div className="flex flex-wrap gap-2 mt-2">
+          <label className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Color</label>
+          <div className="flex flex-wrap gap-2.5 mt-3">
             {HABIT_COLORS.map(c => (
               <button
                 key={c}
                 onClick={() => setColor(c)}
-                className={`w-8 h-8 rounded-full transition-all ${color === c ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110' : 'hover:scale-105'}`}
+                className={`w-8 h-8 rounded-xl transition-all duration-200 ${
+                  color === c ? 'scale-125 ring-2 ring-white/80 ring-offset-2 ring-offset-[#141414]' : 'hover:scale-110'
+                }`}
                 style={{ backgroundColor: c }}
               />
             ))}
@@ -95,42 +97,46 @@ export function HabitForm({ open, onClose, onSave, editHabit }: HabitFormProps) 
         </div>
 
         <div>
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Goals</label>
-          <div className="space-y-3 mt-2">
+          <label className="text-[10px] font-semibold text-white/30 uppercase tracking-widest">Goals</label>
+          <div className="space-y-3 mt-3">
             {goals.map((goal, i) => (
-              <div key={goal.id} className="p-3 bg-white/5 rounded-xl space-y-2">
+              <div key={goal.id} className="p-3.5 bg-white/[0.03] rounded-xl border border-white/[0.04] space-y-3">
                 <div className="flex flex-wrap gap-1.5">
                   {FREQUENCIES.filter(f => f === goal.frequency || !usedFreqs.has(f)).map(freq => (
                     <button
                       key={freq}
                       onClick={() => updateGoal(i, 'frequency', freq)}
-                      className={`px-3 py-1 rounded-full text-xs font-medium transition ${
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-semibold uppercase tracking-wider transition-all ${
                         goal.frequency === freq
-                          ? 'bg-[var(--color-brand)] text-white'
-                          : 'bg-white/5 text-white/40 hover:text-white/60'
+                          ? 'bg-brand text-white shadow-md shadow-brand/20'
+                          : 'bg-white/[0.04] text-white/30 hover:text-white/50'
                       }`}
                     >
                       {FREQUENCY_LABELS[freq]}
                     </button>
                   ))}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <input
                     type="number"
                     min={1}
                     value={goal.targetCount}
                     onChange={e => updateGoal(i, 'targetCount', Math.max(1, parseInt(e.target.value) || 1))}
-                    className="w-16 px-2 py-1.5 bg-white/8 rounded-lg text-center text-white font-semibold outline-none"
+                    className="w-16 px-3 py-2 bg-white/[0.06] rounded-lg text-center text-white font-bold outline-none border border-white/[0.04] focus:border-brand/50"
                   />
-                  <span className="text-sm text-white/40">times / {goal.frequency.replace('ly', '')}</span>
+                  <span className="text-xs text-white/25 font-medium">times per {goal.frequency.replace('ly', '')}</span>
                   {goals.length > 1 && (
-                    <button onClick={() => removeGoal(i)} className="ml-auto text-xs text-red-400 hover:text-red-300">Remove</button>
+                    <button onClick={() => removeGoal(i)} className="ml-auto text-[10px] font-semibold text-red-400/60 hover:text-red-400 uppercase tracking-wider">
+                      Remove
+                    </button>
                   )}
                 </div>
               </div>
             ))}
             {usedFreqs.size < 4 && (
-              <button onClick={addGoal} className="text-sm text-[var(--color-brand)] font-medium hover:underline">+ Add Goal</button>
+              <button onClick={addGoal} className="w-full py-2.5 rounded-xl border border-dashed border-white/[0.08] text-xs font-semibold text-brand/70 hover:text-brand hover:border-brand/30 transition-all">
+                + Add Goal
+              </button>
             )}
           </div>
         </div>
@@ -138,7 +144,7 @@ export function HabitForm({ open, onClose, onSave, editHabit }: HabitFormProps) 
         <button
           onClick={handleSave}
           disabled={!name.trim()}
-          className="w-full py-3 bg-[var(--color-brand)] text-white rounded-xl font-semibold disabled:opacity-30 active:scale-[0.98] transition"
+          className="w-full py-3.5 bg-brand text-white rounded-2xl font-bold text-sm uppercase tracking-wider disabled:opacity-20 active:scale-[0.97] transition-all shadow-lg shadow-brand/20"
         >
           {editHabit ? 'Save Changes' : 'Create Habit'}
         </button>

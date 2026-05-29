@@ -1,4 +1,4 @@
-import { Home, Calendar, BarChart3, Settings } from 'lucide-react'
+import { Home, Calendar, BarChart3 } from 'lucide-react'
 import { Tab } from '../../types'
 
 interface BottomNavProps {
@@ -14,18 +14,23 @@ const tabs: { id: Tab; icon: typeof Home; label: string }[] = [
 
 export function BottomNav({ activeTab, onTabChange }: BottomNavProps) {
   return (
-    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] bg-[#0d0d0d]/95 backdrop-blur-sm border-t border-white/5 z-40">
-      <div className="flex justify-around items-center h-16 px-2">
+    <nav className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-[430px] z-40">
+      <div className="mx-3 mb-3 flex justify-around items-center h-14 rounded-2xl bg-[#1a1a1a]/90 backdrop-blur-xl border border-white/[0.04] shadow-2xl shadow-black/40">
         {tabs.map(({ id, icon: Icon, label }) => (
           <button
             key={id}
             onClick={() => onTabChange(id)}
-            className={`flex flex-col items-center gap-0.5 px-4 py-1 rounded-lg transition ${
-              activeTab === id ? 'text-[var(--color-brand)]' : 'text-[#e8e4dc]/50 hover:text-[#e8e4dc]/80'
+            className={`relative flex flex-col items-center gap-0.5 px-5 py-1.5 rounded-xl transition-all ${
+              activeTab === id
+                ? 'text-brand'
+                : 'text-white/30 hover:text-white/50 active:scale-95'
             }`}
           >
-            <Icon size={22} />
-            <span className="text-[10px] font-medium">{label}</span>
+            <Icon size={20} strokeWidth={activeTab === id ? 2.5 : 1.5} />
+            <span className="text-[9px] font-semibold uppercase tracking-wider">{label}</span>
+            {activeTab === id && (
+              <div className="absolute -bottom-0.5 w-1 h-1 rounded-full bg-brand" />
+            )}
           </button>
         ))}
       </div>

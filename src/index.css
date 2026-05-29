@@ -1,12 +1,21 @@
 @import "tailwindcss";
 
+@theme {
+  --font-heading: "Bebas Neue", sans-serif;
+  --font-sans: "DM Sans", sans-serif;
+  --color-brand: #d97706;
+}
+
 :root {
   --color-brand: #d97706;
 }
 
-[data-theme="green"] { --color-brand: #059669; }
-[data-theme="blue"] { --color-brand: #3b82f6; }
+[data-theme="green"]  { --color-brand: #059669; }
+[data-theme="blue"]   { --color-brand: #3b82f6; }
 [data-theme="purple"] { --color-brand: #8b5cf6; }
+
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 
 * {
   margin: 0;
@@ -16,11 +25,21 @@
 }
 
 body {
-  font-family: 'DM Sans', sans-serif;
+  font-family: "DM Sans", sans-serif;
   background: #0d0d0d;
   color: #e8e4dc;
   min-height: 100dvh;
   overflow-x: hidden;
+}
+
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
 }
 
 #root {
@@ -28,6 +47,12 @@ body {
   margin: 0 auto;
   min-height: 100dvh;
   position: relative;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 @keyframes slide-up {
@@ -42,9 +67,22 @@ body {
 
 @keyframes streak-pulse {
   0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  50% { transform: scale(1.15); }
 }
 
-.animate-slide-up { animation: slide-up 0.3s ease-out; }
-.animate-fade-in { animation: fade-in 0.2s ease-out; }
-.animate-streak-pulse { animation: streak-pulse 0.6s ease-in-out; }
+@keyframes check-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(var(--color-brand-rgb, 217, 119, 6), 0); }
+  50% { box-shadow: 0 0 20px 4px rgba(var(--color-brand-rgb, 217, 119, 6), 0.3); }
+}
+
+.animate-slide-up { animation: slide-up 0.2s ease-out; }
+.animate-fade-in { animation: fade-in 0.15s ease-out; }
+.animate-streak-pulse { animation: streak-pulse 0.5s ease-in-out; }
+.animate-check-pop { animation: check-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.animate-glow-pulse { animation: glow-pulse 2s ease-in-out infinite; }

@@ -6,10 +6,10 @@ interface HeaderProps {
 
 export function Header({ onSettingsOpen }: HeaderProps) {
   return (
-    <header className="flex items-center justify-between px-4 py-3 sticky top-0 z-30 bg-[#0d0d0d]/90 backdrop-blur-sm">
-      <h1 className="font-['Bebas_Neue'] text-2xl tracking-wide text-[var(--color-brand)]">JHabits</h1>
-      <button onClick={onSettingsOpen} className="p-2 rounded-lg hover:bg-white/5 active:bg-white/10 transition">
-        <Settings size={20} className="text-[#e8e4dc]" />
+    <header className="flex items-center justify-between px-4 py-3 sticky top-0 z-30 bg-[#0d0d0d]/95 backdrop-blur-md border-b border-white/[0.03]">
+      <h1 className="font-heading text-[26px] tracking-wide text-brand">JHabits</h1>
+      <button onClick={onSettingsOpen} className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] active:scale-95 transition-all">
+        <Settings size={18} className="text-white/50" />
       </button>
     </header>
   )

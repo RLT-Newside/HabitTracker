@@ -1,4 +1,4 @@
-import { Download, Upload, Trash2 } from 'lucide-react'
+import { Download, Upload } from 'lucide-react'
 import { Modal } from '../shared/Modal'
 import { Habit, Completion, Task } from '../../types'
 import { Theme } from '../../hooks/useTheme'
@@ -57,37 +57,41 @@ export function SettingsModal({ open, onClose, theme, setTheme, habits, completi
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Settings">
-      <div className="space-y-6">
+    <Modal open={open} onClose={onClose} title="SETTINGS">
+      <div className="space-y-7">
         <div>
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Theme</label>
-          <div className="flex gap-3 mt-2">
+          <label className="text-[10px] font-semibold text-white/25 uppercase tracking-widest">Theme Color</label>
+          <div className="flex gap-3 mt-3">
             {THEMES.map(t => (
               <button
                 key={t.id}
                 onClick={() => setTheme(t.id)}
-                className={`w-10 h-10 rounded-full transition-all ${theme === t.id ? 'ring-2 ring-white ring-offset-2 ring-offset-[#1a1a1a] scale-110' : 'hover:scale-105'}`}
-                style={{ backgroundColor: t.color }}
+                className={`w-10 h-10 rounded-xl transition-all duration-200 ${
+                  theme === t.id
+                    ? 'scale-125 ring-2 ring-white/70 ring-offset-2 ring-offset-[#141414] shadow-lg'
+                    : 'hover:scale-110 opacity-60 hover:opacity-100'
+                }`}
+                style={{ backgroundColor: t.color, boxShadow: theme === t.id ? `0 4px 16px ${t.color}40` : undefined }}
               />
             ))}
           </div>
         </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-white/50 uppercase tracking-wider">Data</label>
-          <button onClick={handleExport} className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 rounded-xl hover:bg-white/8 transition">
-            <Download size={18} className="text-[var(--color-brand)]" />
-            <span className="text-sm">Export Backup (JSON)</span>
+        <div className="space-y-2.5">
+          <label className="text-[10px] font-semibold text-white/25 uppercase tracking-widest">Data Management</label>
+          <button onClick={handleExport} className="w-full flex items-center gap-3 px-4 py-3.5 bg-white/[0.03] rounded-xl border border-white/[0.04] hover:bg-white/[0.05] active:scale-[0.98] transition-all">
+            <Download size={16} className="text-brand" />
+            <span className="text-sm font-medium text-white/60">Export Backup</span>
           </button>
-          <button onClick={handleImport} className="w-full flex items-center gap-3 px-4 py-3 bg-white/5 rounded-xl hover:bg-white/8 transition">
-            <Upload size={18} className="text-[var(--color-brand)]" />
-            <span className="text-sm">Import Backup</span>
+          <button onClick={handleImport} className="w-full flex items-center gap-3 px-4 py-3.5 bg-white/[0.03] rounded-xl border border-white/[0.04] hover:bg-white/[0.05] active:scale-[0.98] transition-all">
+            <Upload size={16} className="text-brand" />
+            <span className="text-sm font-medium text-white/60">Import Backup</span>
           </button>
         </div>
 
-        <div className="pt-4 border-t border-white/5 text-center">
-          <p className="text-xs text-white/20">JHabits v{__APP_VERSION__}</p>
-          <p className="text-xs text-white/20 mt-0.5">Build better habits, one day at a time.</p>
+        <div className="pt-5 border-t border-white/[0.03] text-center space-y-1">
+          <p className="text-[10px] text-white/15 font-medium uppercase tracking-widest">JHabits v{__APP_VERSION__}</p>
+          <p className="text-[11px] text-white/10">Build better habits, one day at a time.</p>
         </div>
       </div>
     </Modal>

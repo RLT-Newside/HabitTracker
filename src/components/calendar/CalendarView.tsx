@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 import { Habit, Completion } from '../../types'
 import { getCompletionsForMonth, getToday } from '../../hooks/useStats'
 
@@ -44,17 +44,26 @@ export function CalendarView({ habits, completions, onDaySelect, selectedDate }:
   const monthLabel = new Date(year, month - 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' })
 
   return (
-    <div className="px-4 pb-24">
-      <div className="flex items-center justify-between mb-4">
-        <button onClick={prevMonth} className="p-2 rounded-lg hover:bg-white/5"><ChevronLeft size={20} /></button>
-        <span className="font-semibold">{monthLabel}</span>
-        <button onClick={nextMonth} className="p-2 rounded-lg hover:bg-white/5"><ChevronRight size={20} /></button>
+    <div className="px-4 pb-28">
+      {/* Month nav */}
+      <div className="flex items-center justify-between mb-5">
+        <button onClick={prevMonth} className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] active:scale-90 transition-all">
+          <ChevronLeft size={16} className="text-white/50" />
+        </button>
+        <span className="font-heading text-lg tracking-wide">{monthLabel.toUpperCase()}</span>
+        <button onClick={nextMonth} className="p-2.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] active:scale-90 transition-all">
+          <ChevronRight size={16} className="text-white/50" />
+        </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs text-white/30 mb-2">
-        {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => <div key={d}>{d}</div>)}
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-1 text-center mb-2">
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((d, i) => (
+          <div key={i} className="text-[10px] font-semibold text-white/20 uppercase">{d}</div>
+        ))}
       </div>
 
+      {/* Day grid */}
       <div className="grid grid-cols-7 gap-1">
         {Array.from({ length: offset }).map((_, i) => <div key={`e-${i}`} />)}
         {Array.from({ length: daysInMonth }).map((_, i) => {
@@ -63,22 +72,31 @@ export function CalendarView({ habits, completions, onDaySelect, selectedDate }:
           const isToday = dateStr === today
           const isSelected = dateStr === selectedDate
           const dayCompletions = completionMap[dateStr] || []
+          const hasActivity = dayCompletions.length > 0
 
           return (
             <button
               key={day}
               onClick={() => onDaySelect(dateStr)}
-              className={`relative flex flex-col items-center justify-center h-10 rounded-lg transition text-sm ${
-                isSelected ? 'bg-[var(--color-brand)] text-white font-bold' :
-                isToday ? 'bg-white/8 text-[var(--color-brand)] font-bold' :
-                'hover:bg-white/5'
+              className={`relative flex flex-col items-center justify-center h-11 rounded-xl text-sm font-medium transition-all ${
+                isSelected
+                  ? 'bg-brand text-white shadow-lg shadow-brand/20'
+                  : isToday
+                    ? 'bg-brand/10 text-brand font-bold border border-brand/20'
+                    : hasActivity
+                      ? 'bg-white/[0.04] text-white/70'
+                      : 'text-white/30 hover:bg-white/[0.03]'
               }`}
             >
               {day}
-              {dayCompletions.length > 0 && (
-                <div className="flex gap-0.5 absolute bottom-1">
+              {hasActivity && !isSelected && (
+                <div className="absolute bottom-1 flex gap-[3px]">
                   {dayCompletions.slice(0, 3).map(hid => (
-                    <div key={hid} className="w-1 h-1 rounded-full" style={{ backgroundColor: habitColorMap.get(hid) || 'var(--color-brand)' }} />
+                    <div
+                      key={hid}
+                      className="w-[4px] h-[4px] rounded-full"
+                      style={{ backgroundColor: habitColorMap.get(hid) || 'var(--color-brand)' }}
+                    />
                   ))}
                 </div>
               )}
@@ -87,20 +105,25 @@ export function CalendarView({ habits, completions, onDaySelect, selectedDate }:
         })}
       </div>
 
+      {/* Day detail */}
       {selectedDate && (
-        <div className="mt-4 p-3 bg-white/5 rounded-xl">
-          <p className="text-sm font-medium mb-2">{selectedDate === today ? 'Today' : selectedDate}</p>
+        <div className="mt-5 p-4 bg-[#1a1a1a] rounded-2xl border border-white/[0.04]">
+          <p className="text-[10px] font-semibold text-white/25 uppercase tracking-widest mb-3">
+            {selectedDate === today ? 'Today' : new Date(selectedDate + 'T00:00').toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
+          </p>
           {(completionMap[selectedDate] || []).length === 0 ? (
-            <p className="text-xs text-white/30">No completions</p>
+            <p className="text-sm text-white/20 italic">No activity</p>
           ) : (
-            <div className="space-y-1.5">
+            <div className="space-y-2">
               {(completionMap[selectedDate] || []).map(hid => {
                 const habit = habits.find(h => h.id === hid)
                 if (!habit) return null
                 return (
-                  <div key={hid} className="flex items-center gap-2 text-sm">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: habit.color }} />
-                    <span>{habit.name}</span>
+                  <div key={hid} className="flex items-center gap-2.5">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center" style={{ backgroundColor: habit.color + '20' }}>
+                      <Check size={14} style={{ color: habit.color }} />
+                    </div>
+                    <span className="text-sm font-medium text-white/70">{habit.name}</span>
                   </div>
                 )
               })}
