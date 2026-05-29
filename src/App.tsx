@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import { v4 as uuid } from 'uuid'
 import { Tab, Habit, Completion, Task } from './types'
 import { useStorage } from './hooks/useStorage'
 import { useTheme } from './hooks/useTheme'
-import { getToday } from './hooks/useStats'
+import { getToday, getCurrentStreak } from './hooks/useStats'
 import { Header } from './components/layout/Header'
 import { BottomNav } from './components/layout/BottomNav'
 import { Dashboard } from './components/dashboard/Dashboard'
@@ -23,6 +23,11 @@ export default function App() {
   const [habitFormOpen, setHabitFormOpen] = useState(false)
   const [editHabit, setEditHabit] = useState<Habit | null>(null)
   const [selectedDate, setSelectedDate] = useState(getToday())
+
+  const bestStreak = useMemo(() => {
+    const active = habits.filter(h => !h.archived)
+    return Math.max(...active.map(h => getCurrentStreak(completions, h.id)), 0)
+  }, [habits, completions])
 
   const handleToggle = useCallback((habitId: string) => {
     const date = getToday()
@@ -46,6 +51,11 @@ export default function App() {
     setEditHabit(null)
   }, [setHabits])
 
+  const handleDeleteHabit = useCallback((id: string) => {
+    setHabits(prev => prev.filter(h => h.id !== id))
+    setCompletions(prev => prev.filter(c => c.habitId !== id))
+  }, [setHabits, setCompletions])
+
   const handleHabitDetail = useCallback((habit: Habit) => {
     setEditHabit(habit)
     setHabitFormOpen(true)
@@ -59,7 +69,7 @@ export default function App() {
 
   return (
     <>
-      <Header onSettingsOpen={() => setSettingsOpen(true)} />
+      <Header onSettingsOpen={() => setSettingsOpen(true)} streak={bestStreak} />
 
       <main className="pb-16">
         {tab === 'dashboard' && (
@@ -90,6 +100,7 @@ export default function App() {
         open={habitFormOpen}
         onClose={() => { setHabitFormOpen(false); setEditHabit(null) }}
         onSave={handleSaveHabit}
+        onDelete={handleDeleteHabit}
         editHabit={editHabit}
       />
 

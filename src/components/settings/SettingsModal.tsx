@@ -1,7 +1,7 @@
-import { Download, Upload } from 'lucide-react'
+import { Download, Upload, ExternalLink } from 'lucide-react'
 import { Modal } from '../shared/Modal'
 import { Habit, Completion, Task } from '../../types'
-import { Theme } from '../../hooks/useTheme'
+import { Theme, THEME_META } from '../../hooks/useTheme'
 
 declare const __APP_VERSION__: string
 
@@ -15,13 +15,6 @@ interface SettingsModalProps {
   tasks: Task[]
   onImport: (data: { habits: Habit[]; completions: Completion[]; tasks: Task[] }) => void
 }
-
-const THEMES: { id: Theme; label: string; color: string }[] = [
-  { id: 'amber', label: 'Amber', color: '#d97706' },
-  { id: 'green', label: 'Green', color: '#059669' },
-  { id: 'blue', label: 'Blue', color: '#3b82f6' },
-  { id: 'purple', label: 'Purple', color: '#8b5cf6' },
-]
 
 export function SettingsModal({ open, onClose, theme, setTheme, habits, completions, tasks, onImport }: SettingsModalProps) {
   function handleExport() {
@@ -58,40 +51,60 @@ export function SettingsModal({ open, onClose, theme, setTheme, habits, completi
 
   return (
     <Modal open={open} onClose={onClose} title="SETTINGS">
-      <div className="space-y-7">
+      <div className="space-y-8">
+        {/* Theme */}
         <div>
-          <label className="text-[10px] font-semibold text-white/25 uppercase tracking-widest">Theme Color</label>
-          <div className="flex gap-3 mt-3">
-            {THEMES.map(t => (
-              <button
-                key={t.id}
-                onClick={() => setTheme(t.id)}
-                className={`w-10 h-10 rounded-xl transition-all duration-200 ${
-                  theme === t.id
-                    ? 'scale-125 ring-2 ring-white/70 ring-offset-2 ring-offset-[#141414] shadow-lg'
-                    : 'hover:scale-110 opacity-60 hover:opacity-100'
-                }`}
-                style={{ backgroundColor: t.color, boxShadow: theme === t.id ? `0 4px 16px ${t.color}40` : undefined }}
-              />
-            ))}
+          <label className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">Accent Color</label>
+          <div className="flex gap-3.5 mt-4">
+            {(Object.keys(THEME_META) as Theme[]).map(t => {
+              const meta = THEME_META[t]
+              const active = theme === t
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  className="flex flex-col items-center gap-1.5"
+                >
+                  <div
+                    className={`w-10 h-10 rounded-xl transition-all duration-200 ${
+                      active
+                        ? 'scale-[1.2] ring-[2px] ring-white/70 ring-offset-[3px] ring-offset-[#131315]'
+                        : 'opacity-40 hover:opacity-70 hover:scale-105'
+                    }`}
+                    style={{
+                      backgroundColor: meta.color,
+                      boxShadow: active ? `0 6px 24px ${meta.color}40` : undefined,
+                    }}
+                  />
+                  <span className={`text-[8px] font-bold uppercase tracking-wider ${active ? 'text-white/60' : 'text-white/15'}`}>
+                    {meta.label}
+                  </span>
+                </button>
+              )
+            })}
           </div>
         </div>
 
+        {/* Data */}
         <div className="space-y-2.5">
-          <label className="text-[10px] font-semibold text-white/25 uppercase tracking-widest">Data Management</label>
-          <button onClick={handleExport} className="w-full flex items-center gap-3 px-4 py-3.5 bg-white/[0.03] rounded-xl border border-white/[0.04] hover:bg-white/[0.05] active:scale-[0.98] transition-all">
-            <Download size={16} className="text-brand" />
-            <span className="text-sm font-medium text-white/60">Export Backup</span>
+          <label className="text-[9px] font-bold text-white/20 uppercase tracking-[0.2em]">Data</label>
+          <button onClick={handleExport} className="w-full flex items-center gap-3 px-4 py-4 card card-hover">
+            <Download size={16} className="text-[var(--color-brand)]" />
+            <div className="text-left">
+              <span className="text-[13px] font-semibold text-white/70">Export Backup</span>
+              <p className="text-[10px] text-white/20 mt-0.5">{habits.length} habits, {completions.length} completions</p>
+            </div>
           </button>
-          <button onClick={handleImport} className="w-full flex items-center gap-3 px-4 py-3.5 bg-white/[0.03] rounded-xl border border-white/[0.04] hover:bg-white/[0.05] active:scale-[0.98] transition-all">
-            <Upload size={16} className="text-brand" />
-            <span className="text-sm font-medium text-white/60">Import Backup</span>
+          <button onClick={handleImport} className="w-full flex items-center gap-3 px-4 py-4 card card-hover">
+            <Upload size={16} className="text-[var(--color-brand)]" />
+            <span className="text-[13px] font-semibold text-white/70">Import Backup</span>
           </button>
         </div>
 
-        <div className="pt-5 border-t border-white/[0.03] text-center space-y-1">
-          <p className="text-[10px] text-white/15 font-medium uppercase tracking-widest">JHabits v{__APP_VERSION__}</p>
-          <p className="text-[11px] text-white/10">Build better habits, one day at a time.</p>
+        {/* Footer */}
+        <div className="pt-4 border-t border-white/[0.03] text-center space-y-2">
+          <p className="text-[10px] font-bold text-white/10 uppercase tracking-[0.2em]">JHabits v{__APP_VERSION__}</p>
+          <p className="text-[11px] text-white/8">Build better habits, one day at a time.</p>
         </div>
       </div>
     </Modal>
