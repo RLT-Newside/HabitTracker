@@ -4,14 +4,9 @@ on:
   push:
     branches: [beta]
   workflow_dispatch:
-    inputs:
-      confirm:
-        description: 'Build beta APK?'
-        required: true
-        default: 'yes'
-        type: choice
-        options:
-          - 'yes'
+
+permissions:
+  contents: write
 
 jobs:
   build-beta:
@@ -19,8 +14,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: beta
 
       - uses: actions/setup-node@v4
         with:
@@ -32,10 +25,13 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
 
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
       - name: Install dependencies
         run: npm ci
 
-      - name: Get version
+      - name: Get version info
         id: version
         run: |
           VERSION=$(node -p "require('./package.json').version")
@@ -44,25 +40,24 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
-          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
 
       - name: Generate native Android project
-        run: npx expo prebuild --platform android --clean
+        run: npx expo prebuild --platform android --clean --no-install
 
       - name: Build APK
         working-directory: android
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
 
       - name: Rename APK
         run: |
-          mv android/app/build/outputs/apk/release/app-release.apk \
-             android/app/build/outputs/apk/release/JHabits-v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}.apk
+          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
+          mv "$APK_PATH" "JHabits-v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: JHabits-beta-${{ steps.version.outputs.short_sha }}
-          path: android/app/build/outputs/apk/release/JHabits-*.apk
+          path: JHabits-*.apk
           retention-days: 14
 
       - name: Create Beta Pre-release
@@ -70,6 +65,6 @@ jobs:
         with:
           tag_name: v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}
           name: Beta v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}
-          files: android/app/build/outputs/apk/release/JHabits-*.apk
+          files: JHabits-*.apk
           generate_release_notes: true
           prerelease: true
