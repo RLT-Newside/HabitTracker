@@ -1,70 +1,71 @@
-name: Build Beta Release
+name: Beta Release
 
 on:
   push:
     branches: [beta]
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
-  build-beta:
+  beta-release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate beta version
+        id: version
+        run: |
+          BUILD_NUM=$(git rev-list --count HEAD)
+          VERSION="0.0.${BUILD_NUM}-beta"
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
 
       - uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 21
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Get version info
-        id: version
+      - name: Sync Capacitor & Build APK
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          SHORT_SHA=$(git rev-parse --short HEAD)
-          BUILD_NUM=$(git rev-list --count HEAD)
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "build_num=$BUILD_NUM" >> $GITHUB_OUTPUT
+          npx cap sync android
+          chmod +x android/gradlew
+          cd android && ./gradlew assembleRelease
 
-      - name: Generate native Android project
-        run: npx expo prebuild --platform android --clean --no-install
+      - name: Decode keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/jhabits.keystore
 
-      - name: Build APK
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
-
-      - name: Rename APK
+      - name: Sign APK
         run: |
-          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
-          mv "$APK_PATH" "JHabits-v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}.apk"
+          UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          SIGNED="JHabits-${{ steps.version.outputs.tag }}.apk"
+          ${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | tail -1)/apksigner sign \
+            --ks /tmp/jhabits.keystore \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --out "$SIGNED" \
+            "$UNSIGNED"
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: JHabits-beta-${{ steps.version.outputs.short_sha }}
-          path: JHabits-*.apk
-          retention-days: 14
-
-      - name: Create Beta Pre-release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}
-          name: Beta v${{ steps.version.outputs.version }}-beta.${{ steps.version.outputs.build_num }}
-          files: JHabits-*.apk
-          generate_release_notes: true
-          prerelease: true
+      - name: Create beta pre-release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag "${{ steps.version.outputs.tag }}" 2>/dev/null || true
+          git push origin "${{ steps.version.outputs.tag }}" 2>/dev/null || true
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "JHabits Beta ${{ steps.version.outputs.tag }}" \
+            --generate-notes \
+            --prerelease \
+            JHabits-*.apk

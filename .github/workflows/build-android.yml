@@ -1,82 +1,116 @@
-name: Build & Release Android APK
+name: Auto Release on Main Push
 
 on:
   push:
     branches: [main]
-  workflow_dispatch:
-    inputs:
-      release_type:
-        description: 'Release type'
-        required: false
-        default: 'release'
-        type: choice
-        options:
-          - release
-          - none
-
-permissions:
-  contents: write
 
 jobs:
-  build-apk:
+  release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: 'npm'
+          fetch-depth: 0
 
-      - uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Get version info
+      - name: Calculate version (Iteration.Sprint.Commit)
         id: version
         run: |
-          VERSION=$(node -p "require('./package.json').version")
-          SHORT_SHA=$(git rev-parse --short HEAD)
+          EPOCH="2026-05-29"
+          EPOCH_S=$(date -d "$EPOCH" +%s)
+          NOW_S=$(date +%s)
+          DAYS=$(( (NOW_S - EPOCH_S) / 86400 ))
+          if [ $DAYS -lt 0 ]; then DAYS=0; fi
+
+          ITERATION=$(( DAYS / 182 + 1 ))
+          SPRINT=$(( (DAYS % 182) / 21 ))
+
+          git fetch --tags
+          COMMIT=$(git tag -l "v${ITERATION}.${SPRINT}.*" | wc -l | tr -d ' ')
+
+          VERSION="${ITERATION}.${SPRINT}.${COMMIT}"
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
-          echo "date=$(date +'%Y%m%d')" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
-      - name: Generate native Android project
-        run: npx expo prebuild --platform android --clean --no-install
-
-      - name: Install CocoaPods-free Android deps
-        working-directory: android
-        run: ./gradlew --no-daemon dependencies || true
-
-      - name: Build APK
-        working-directory: android
-        run: ./gradlew assembleRelease --no-daemon
-
-      - name: Rename APK
+      - name: Check if release already exists
+        id: release_check
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          APK_PATH=$(find android/app/build/outputs/apk -name "*.apk" | head -1)
-          mv "$APK_PATH" "JHabits-v${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}.apk"
+          if gh release view "${{ steps.version.outputs.tag }}" > /dev/null 2>&1; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
+      - name: Tag and create release
+        if: steps.release_check.outputs.exists == 'false'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git tag "${{ steps.version.outputs.tag }}" 2>/dev/null || true
+          git push origin "${{ steps.version.outputs.tag }}" 2>/dev/null || true
+          gh release create "${{ steps.version.outputs.tag }}" \
+            --title "JHabits-${{ steps.version.outputs.tag }}" \
+            --generate-notes
+
+      - name: Set up Node.js
+        if: steps.release_check.outputs.exists == 'false'
+        uses: actions/setup-node@v4
         with:
-          name: JHabits-v${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}
-          path: JHabits-*.apk
-          retention-days: 30
+          node-version: 22
+          cache: npm
 
-      - name: Create Release
+      - name: Install dependencies
+        if: steps.release_check.outputs.exists == 'false'
+        run: npm ci
+
+      - name: Build web app
+        if: steps.release_check.outputs.exists == 'false'
+        run: npm run build
+
+      - name: Set up JDK
+        if: steps.release_check.outputs.exists == 'false'
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Sync Capacitor
+        if: steps.release_check.outputs.exists == 'false'
+        run: npx cap sync android
+
+      - name: Make gradlew executable
+        if: steps.release_check.outputs.exists == 'false'
+        run: chmod +x android/gradlew
+
+      - name: Build release APK
+        if: steps.release_check.outputs.exists == 'false'
+        working-directory: android
+        run: ./gradlew assembleRelease
+
+      - name: Decode keystore
+        if: steps.release_check.outputs.exists == 'false'
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > /tmp/jhabits.keystore
+
+      - name: Sign APK
+        if: steps.release_check.outputs.exists == 'false'
+        run: |
+          UNSIGNED="android/app/build/outputs/apk/release/app-release-unsigned.apk"
+          SIGNED="JHabits-${{ steps.version.outputs.tag }}.apk"
+          ${ANDROID_HOME}/build-tools/$(ls ${ANDROID_HOME}/build-tools/ | tail -1)/apksigner sign \
+            --ks /tmp/jhabits.keystore \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --ks-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEYSTORE_PASSWORD }} \
+            --out "$SIGNED" \
+            "$UNSIGNED"
+
+      - name: Upload APK to release
+        if: steps.release_check.outputs.exists == 'false'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.version.outputs.version }}+${{ steps.version.outputs.date }}.${{ steps.version.outputs.short_sha }}
-          name: Release v${{ steps.version.outputs.version }} (${{ steps.version.outputs.date }})
+          tag_name: ${{ steps.version.outputs.tag }}
           files: JHabits-*.apk
-          generate_release_notes: true
-          make_latest: true

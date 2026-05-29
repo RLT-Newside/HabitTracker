@@ -1,55 +1,56 @@
 # JHabits
 
-A React Native habit tracker & planner with recursive goal tracking, stats, and calendar integration.
+Habit Tracker & Planner PWA with Android APK support via Capacitor.
 
 ## Features
 
 - **Habit Tracking** — Create, edit, check off daily habits
 - **Recursive Goals** — Set daily, weekly, monthly, and yearly targets per habit
-- **Statistics** — Progress rings, streak counters, bar charts, on-track projections
-- **Calendar** — Monthly view with color-coded completion dots, day detail view
-- **100% Offline** — All data stored locally via SQLite
+- **Statistics** — Progress rings, streak counters, on-track projections
+- **Calendar** — Monthly view with color-coded completion dots
+- **100% Offline** — All data stored in localStorage, no accounts
+- **PWA** — Installable on any device via browser
+- **Android APK** — Native app via Capacitor
 
 ## Tech Stack
 
-- React Native (Expo SDK 56)
-- TypeScript
-- expo-sqlite (WAL mode, migrations)
-- Zustand (state management)
-- React Navigation 7
-- react-native-calendars
-- react-native-gifted-charts
+- React 19 + TypeScript
+- Vite 8
+- Tailwind CSS 4
+- Capacitor 8 (Android bridge)
+- localStorage (via useStorage hook)
+- lucide-react (icons)
 
 ## Getting Started
 
 ```bash
 npm install
-npm start
+npm run dev
 ```
-
-Scan QR with Expo Go, or run `npm run android`.
 
 ## Build APK
 
 APK builds automatically on every push to `main` via GitHub Actions.
 
-Manual: Go to **Actions** tab → **Build & Release Android APK** → **Run workflow**.
+Requires secrets: `KEYSTORE_BASE64`, `KEY_ALIAS`, `KEYSTORE_PASSWORD`
 
-Beta releases trigger on pushes to the `beta` branch.
+Beta releases on the `beta` branch.
 
 ## Project Structure
 
 ```
 src/
-├── app/navigation/     # Tab + stack navigators
-├── components/         # UI, habits, calendar, stats, tasks
-├── screens/            # All app screens
-├── db/                 # SQLite database + repositories
-├── stores/             # Zustand state stores
-├── services/           # Stats engine, streak calculator
-├── types/              # TypeScript interfaces
-├── utils/              # Date helpers, constants
-└── theme/              # Colors, spacing, typography
+├── components/
+│   ├── layout/        # Header, BottomNav
+│   ├── dashboard/     # Dashboard view
+│   ├── habits/        # HabitForm
+│   ├── calendar/      # CalendarView
+│   ├── stats/         # StatsView
+│   ├── settings/      # SettingsModal
+│   └── shared/        # ProgressRing, Modal
+├── hooks/             # useStorage, useTheme, useStats, useUpdateCheck
+├── types/             # TypeScript interfaces
+└── App.tsx            # Main app, state management via hooks
 ```
 
 ## License
